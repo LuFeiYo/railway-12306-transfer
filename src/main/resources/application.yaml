@@ -1,0 +1,8 @@
+server:
+  servlet:
+    context-path: /railway-12306-transfer
+
+spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
