@@ -1,5 +1,7 @@
 package com.lhw.service;
 
+import com.lhw.pojo.TicketExcelData;
+
 import java.util.List;
 
 /**
@@ -9,5 +11,5 @@ import java.util.List;
  */
 public interface TransferService {
 
-    void getExcelResult(String fromStation, String toStation, List<String> transferStationList);
+    List<TicketExcelData> listTicketResult(String fromStation, String toStation, List<String> transferStationList);
 }

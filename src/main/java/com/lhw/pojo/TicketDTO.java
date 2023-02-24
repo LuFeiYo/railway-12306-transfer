@@ -31,6 +31,11 @@ public class TicketDTO {
     private String duration;
 
     /**
+     * 当日到达文本
+     */
+    private String arrivalTheDayText;
+
+    /**
      * 中转站
      */
     private String transferStation;
