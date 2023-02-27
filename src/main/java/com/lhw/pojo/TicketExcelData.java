@@ -48,10 +48,22 @@ public class TicketExcelData {
     private String arriveStatus1;
 
     /**
+     * 到达日期
+     */
+    @ExcelProperty({"车次一", "到达日期"})
+    private String arrivalDate1;
+
+    /**
      * 到达时间
      */
     @ExcelProperty({"车次一", "到达时间"})
     private String arrivalTime1;
+
+    /**
+     * 到达时间
+     */
+    @ExcelProperty({"车次一", "到达日期时间"})
+    private String arrivalDateTime1;
 
     /**
      * 到达地
@@ -102,10 +114,22 @@ public class TicketExcelData {
     private String arriveStatus2;
 
     /**
+     * 到达日期
+     */
+    @ExcelProperty({"车次二", "到达日期"})
+    private String arrivalDate2;
+
+    /**
      * 到达时间
      */
     @ExcelProperty({"车次二", "到达时间"})
     private String arrivalTime2;
+
+    /**
+     * 到达时间
+     */
+    @ExcelProperty({"车次二", "到达日期时间"})
+    private String arrivalDateTime2;
 
     /**
      * 到达地
@@ -128,6 +152,6 @@ public class TicketExcelData {
     /**
      * 筛选条件-是否同站换乘
      */
-    @ExcelProperty({"筛选条件", "是否同站换乘"})
+    @ExcelProperty("是否同站换乘")
     private String isSameStation;
 }

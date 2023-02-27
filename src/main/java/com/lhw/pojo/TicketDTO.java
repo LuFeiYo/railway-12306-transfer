@@ -2,6 +2,9 @@ package com.lhw.pojo;
 
 import lombok.Data;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 /**
  * @author lufei.lhw
  * @date 2023/2/20 12:22
@@ -16,9 +19,19 @@ public class TicketDTO {
     private String fromStation;
 
     /**
+     * 出发日期
+     */
+    private LocalDate departureDate;
+
+    /**
      * 出发时间
      */
     private String departureTime;
+
+    /**
+     * 出发日期+时间
+     */
+    private LocalDateTime departureDateTime;
 
     /**
      * 车次
@@ -41,9 +54,19 @@ public class TicketDTO {
     private String transferStation;
 
     /**
+     * 到站日期
+     */
+    private LocalDate arrivalDate;
+
+    /**
      * 到站时间
      */
     private String arrivalTime;
+
+    /**
+     * 到站日期+时间
+     */
+    private LocalDateTime arrivalDateTime;
 
     /**
      * 票价

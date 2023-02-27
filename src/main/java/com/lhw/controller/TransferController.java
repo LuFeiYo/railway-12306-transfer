@@ -8,12 +8,14 @@ import com.lhw.service.TransferService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,10 +38,11 @@ public class TransferController {
     @ApiOperationSupport(order = 1)
     @GetMapping("/downloadTicketExcel")
     public void downloadTicketExcel(@RequestParam("fromStation") @ApiParam("出发地") String fromStation,
-                               @RequestParam("toStation") @ApiParam("到达地") String toStation,
-                               @RequestParam("transferStationList") @ApiParam("中转地列表") List<String> transferStationList,
-                               HttpServletResponse response) throws IOException {
-        List<TicketExcelData> ticketExcelDataList = transferService.listTicketResult(fromStation, toStation, transferStationList);
+                                    @RequestParam("toStation") @ApiParam("到达地") String toStation,
+                                    @RequestParam("transferStationList") @ApiParam("中转地列表") List<String> transferStationList,
+                                    @RequestParam("departureDate") @ApiParam("出发日期") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate departureDate,
+                                    HttpServletResponse response) throws IOException {
+        List<TicketExcelData> ticketExcelDataList = transferService.listTicketResult(fromStation, toStation, transferStationList, departureDate);
         // 这里注意 有同学反应使用swagger 会导致各种问题，请直接用浏览器或者用postman
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");

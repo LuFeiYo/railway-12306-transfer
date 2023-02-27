@@ -1,11 +1,7 @@
 package com.lhw.service.impl;
 
 import cn.hutool.core.date.BetweenFormatter;
-import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.core.date.LocalDateTimeUtil;
-import cn.hutool.core.lang.TypeReference;
-import cn.hutool.json.JSONUtil;
 import com.lhw.enums.OperationSystemEnum;
 import com.lhw.pojo.TicketDTO;
 import com.lhw.pojo.TicketExcelData;
@@ -22,15 +18,13 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.stereotype.Service;
 
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.text.DateFormat;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author lufei.lhw
@@ -41,8 +35,7 @@ import java.util.*;
 public class TransferServiceImpl implements TransferService {
 
     @Override
-    public List<TicketExcelData> listTicketResult(String fromStation, String toStation, List<String> transferStationList) {
-        LocalDate localDate = LocalDate.now().plusDays(13L);
+    public List<TicketExcelData> listTicketResult(String fromStation, String toStation, List<String> transferStationList, LocalDate departureDate) {
         List<TicketExcelData> ticketExcelDataList = new ArrayList<>();
         ChromeOptions option = new ChromeOptions();
         String osName = System.getProperty("os.name");
@@ -60,9 +53,14 @@ public class TransferServiceImpl implements TransferService {
         Map<String, List<TicketDTO>> fromTransferStationMap = new HashMap<>();
         for (String transferStation : transferStationList) {
             // 计算从出发地到中转地
-            toTransferStationMap.put(transferStation, generateTicketDTOList(driver, fromStation, transferStation, localDate));
+            List<TicketDTO> toTicketDTOList = generateTicketDTOList(driver, fromStation, transferStation, departureDate);
+            toTransferStationMap.putAll(toTicketDTOList.stream().collect(Collectors.groupingBy(item -> {
+                return transferStation + ":" + item.getArrivalDate();
+            })));
+        }
+        for (String key : toTransferStationMap.keySet()) {
             // 计算从中转地到到达地
-            fromTransferStationMap.put(transferStation, generateTicketDTOList(driver, transferStation, toStation, localDate));
+            fromTransferStationMap.put(key, generateTicketDTOList(driver, key.split(":")[0], toStation, LocalDate.parse(key.split(":")[1])));
         }
         driver.quit();
         for (Map.Entry<String, List<TicketDTO>> toMap : toTransferStationMap.entrySet()) {
@@ -74,42 +72,38 @@ public class TransferServiceImpl implements TransferService {
                     List<TicketDTO> fromTicketDTOList = fromMap.getValue();
                     for (TicketDTO toTicketDTO : toTicketDTOList) {
                         for (TicketDTO fromTicketDTO : fromTicketDTOList) {
-                            TicketExcelData ticketExcelData = new TicketExcelData();
-                            ticketExcelData.setFromStation1(toTicketDTO.getFromStation());
-                            ticketExcelData.setDepartureTime1(toTicketDTO.getDepartureTime());
-                            ticketExcelData.setTrain1(toTicketDTO.getTrain());
-                            ticketExcelData.setPrice1(toTicketDTO.getPrice());
-                            ticketExcelData.setDuration1(toTicketDTO.getDuration());
-                            ticketExcelData.setArriveStatus1(toTicketDTO.getArrivalTheDayText());
-                            ticketExcelData.setArrivalTime1(toTicketDTO.getArrivalTime());
-                            ticketExcelData.setToStation1(toTicketDTO.getTransferStation());
-                            String train1StartTime = localDate + " " + toTicketDTO.getDepartureTime() + ":00";
-                            String train1EndTime = LocalDateTime.parse(train1StartTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                                    .plusHours(Long.parseLong(toTicketDTO.getDuration().split(":")[0]))
-                                    .plusMinutes(Long.parseLong(toTicketDTO.getDuration().split(":")[1]))
-                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                            boolean toArrivalTheDayFlag = "当日到达".equals(toTicketDTO.getArrivalTheDayText());
-                            boolean fromArrivalTheDayFlag = "当日到达".equals(fromTicketDTO.getArrivalTheDayText());
-                            LocalTime train1EndLocalTime = LocalTime.of(Integer.valueOf(toTicketDTO.getArrivalTime().split(":")[0]), Integer.valueOf(toTicketDTO.getArrivalTime().split(":")[1]));
-                            LocalTime train2StartLocalTime = LocalTime.of(Integer.valueOf(fromTicketDTO.getDepartureTime().split(":")[0]), Integer.valueOf(fromTicketDTO.getDepartureTime().split(":")[1]));
-                            String train2StartTime = ((toArrivalTheDayFlag && fromArrivalTheDayFlag && train1EndLocalTime.isBefore(train2StartLocalTime)) ? localDate : localDate.plusDays(1L)) + " " + fromTicketDTO.getDepartureTime() + ":00";
-                            String train2EndTime = LocalDateTime.parse(train2StartTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
-                                    .plusHours(Long.parseLong(fromTicketDTO.getDuration().split(":")[0]))
-                                    .plusMinutes(Long.parseLong(fromTicketDTO.getDuration().split(":")[1]))
-                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                            ticketExcelData.setResidenceTime(DateUtil.formatBetween(DateUtil.parse(train1EndTime), DateUtil.parse(train2StartTime), BetweenFormatter.Level.MINUTE));
-                            ticketExcelData.setFromStation2(fromTicketDTO.getFromStation());
-                            ticketExcelData.setDepartureTime2(fromTicketDTO.getDepartureTime());
-                            ticketExcelData.setTrain2(fromTicketDTO.getTrain());
-                            ticketExcelData.setPrice2(fromTicketDTO.getPrice());
-                            ticketExcelData.setDuration2(fromTicketDTO.getDuration());
-                            ticketExcelData.setArriveStatus2(fromTicketDTO.getArrivalTheDayText());
-                            ticketExcelData.setArrivalTime2(fromTicketDTO.getArrivalTime());
-                            ticketExcelData.setToStation2(fromTicketDTO.getTransferStation());
-                            ticketExcelData.setTotalDuration(DateUtil.formatBetween(DateUtil.parse(train1StartTime), DateUtil.parse(train2EndTime), BetweenFormatter.Level.MINUTE));
-                            ticketExcelData.setTotalPrice(new BigDecimal(toTicketDTO.getPrice().replaceAll("¥", "")).add(new BigDecimal(fromTicketDTO.getPrice().replaceAll("¥", ""))).toString());
-                            ticketExcelData.setIsSameStation(toTicketDTO.getTransferStation().equals(fromTicketDTO.getFromStation()) ? "是" : "否");
-                            ticketExcelDataList.add(ticketExcelData);
+                            if (toTicketDTO.getArrivalDateTime().isBefore(fromTicketDTO.getDepartureDateTime())) {
+                                TicketExcelData ticketExcelData = new TicketExcelData();
+                                ticketExcelData.setFromStation1(toTicketDTO.getFromStation());
+                                ticketExcelData.setDepartureTime1(toTicketDTO.getDepartureTime());
+                                ticketExcelData.setTrain1(toTicketDTO.getTrain());
+                                ticketExcelData.setPrice1(toTicketDTO.getPrice());
+                                ticketExcelData.setDuration1(toTicketDTO.getDuration());
+                                ticketExcelData.setArriveStatus1(toTicketDTO.getArrivalTheDayText());
+                                ticketExcelData.setArrivalDate1(toTicketDTO.getArrivalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                                ticketExcelData.setArrivalTime1(toTicketDTO.getArrivalTime());
+                                ticketExcelData.setArrivalDateTime1(toTicketDTO.getArrivalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                                ticketExcelData.setToStation1(toTicketDTO.getTransferStation());
+
+                                String train1StartTime = toTicketDTO.getDepartureDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                                String train2StartTime = fromTicketDTO.getDepartureDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                                ticketExcelData.setResidenceTime(DateUtil.formatBetween(DateUtil.parse(ticketExcelData.getArrivalDateTime1()), DateUtil.parse(train2StartTime), BetweenFormatter.Level.MINUTE));
+
+                                ticketExcelData.setFromStation2(fromTicketDTO.getFromStation());
+                                ticketExcelData.setDepartureTime2(fromTicketDTO.getDepartureTime());
+                                ticketExcelData.setTrain2(fromTicketDTO.getTrain());
+                                ticketExcelData.setPrice2(fromTicketDTO.getPrice());
+                                ticketExcelData.setDuration2(fromTicketDTO.getDuration());
+                                ticketExcelData.setArriveStatus2(fromTicketDTO.getArrivalTheDayText());
+                                ticketExcelData.setArrivalDate2(fromTicketDTO.getArrivalDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                                ticketExcelData.setArrivalTime2(fromTicketDTO.getArrivalTime());
+                                ticketExcelData.setArrivalDateTime2(fromTicketDTO.getArrivalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                                ticketExcelData.setToStation2(fromTicketDTO.getTransferStation());
+                                ticketExcelData.setTotalDuration(DateUtil.formatBetween(DateUtil.parse(train1StartTime), DateUtil.parse(ticketExcelData.getArrivalDateTime2()), BetweenFormatter.Level.MINUTE));
+                                ticketExcelData.setTotalPrice(new BigDecimal(toTicketDTO.getPrice().replaceAll("¥", "")).add(new BigDecimal(fromTicketDTO.getPrice().replaceAll("¥", ""))).toString());
+                                ticketExcelData.setIsSameStation(toTicketDTO.getTransferStation().equals(fromTicketDTO.getFromStation()) ? "是" : "否");
+                                ticketExcelDataList.add(ticketExcelData);
+                            }
                         }
                     }
                 }
@@ -125,7 +119,7 @@ public class TransferServiceImpl implements TransferService {
      * @param toStation   目的地
      * @return 火车车次信息
      */
-    private List<TicketDTO> generateTicketDTOList(WebDriver driver, String fromStation, String toStation, LocalDate localDate) {
+    private List<TicketDTO> generateTicketDTOList(WebDriver driver, String fromStation, String toStation, LocalDate departureDate) {
         List<TicketDTO> ticketDTOList = new ArrayList<>();
         try {
             driver.get("https://www.12306.cn/index/");
@@ -139,7 +133,7 @@ public class TransferServiceImpl implements TransferService {
             Thread.sleep(500);
             driver.findElement(By.id("citem_0")).click();
             driver.findElement(By.id("train_date")).clear();
-            driver.findElement(By.id("train_date")).sendKeys(localDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            driver.findElement(By.id("train_date")).sendKeys(departureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             driver.findElement(By.id("search_one")).click();
             // 切换到新标签页
             driver.close();
@@ -156,6 +150,8 @@ public class TransferServiceImpl implements TransferService {
                     // 出发站
                     String fromStationTemp = webElement.findElements(By.tagName("strong")).get(0).getText();
                     ticketDTO.setFromStation(fromStationTemp);
+                    // 出发日期
+                    ticketDTO.setDepartureDate(departureDate);
                     // 出发时间
                     String departureTime = webElement.findElements(By.tagName("strong")).get(2).getText();
                     ticketDTO.setDepartureTime(departureTime);
@@ -178,6 +174,16 @@ public class TransferServiceImpl implements TransferService {
                     WebElement priceWebElement = webElementList.get(i + 1);
                     List<WebElement> priceTdElementList = priceWebElement.findElements(By.tagName("td"));
                     if (CollectionUtils.isNotEmpty(priceTdElementList)) {
+                        // 出发日期+时间
+                        ticketDTO.setDepartureDateTime(LocalDateTime.parse(departureDate + " " + departureTime + ":00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                        // 到站日期+时间
+                        LocalDateTime arrivalDateTime = ticketDTO.getDepartureDateTime()
+                                .plusHours(Long.parseLong(ticketDTO.getDuration().split(":")[0]))
+                                .plusMinutes(Long.parseLong(ticketDTO.getDuration().split(":")[1]));
+                        ticketDTO.setArrivalDateTime(arrivalDateTime);
+                        // 到站日期
+                        LocalDate arrivalDate = arrivalDateTime.toLocalDate();
+                        ticketDTO.setArrivalDate(arrivalDate);
                         // 当日到达文本
                         String spanText = webElement.findElements(By.tagName("span")).get(2).getText();
                         ticketDTO.setArrivalTheDayText(spanText);
