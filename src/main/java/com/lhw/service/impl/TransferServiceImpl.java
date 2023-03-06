@@ -54,9 +54,7 @@ public class TransferServiceImpl implements TransferService {
         for (String transferStation : transferStationList) {
             // 计算从出发地到中转地
             List<TicketDTO> toTicketDTOList = generateTicketDTOList(driver, fromStation, transferStation, departureDate);
-            toTransferStationMap.putAll(toTicketDTOList.stream().collect(Collectors.groupingBy(item -> {
-                return transferStation + ":" + item.getArrivalDate();
-            })));
+            toTransferStationMap.putAll(toTicketDTOList.stream().collect(Collectors.groupingBy(item -> transferStation + ":" + item.getArrivalDate())));
         }
         for (String key : toTransferStationMap.keySet()) {
             // 计算从中转地到到达地
