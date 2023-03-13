@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--Configuration后面的status，这个用于设置log4j2自身内部的信息输出，可以不设置，当设置成trace时，你会看到log4j2内部各种详细输出-->
+<!--monitorInterval：Log4j能够自动检测修改配置文件和重新配置本身(无需重启,热更新)，设置间隔秒数-->
+<Configuration status="INFO" monitorInterval="1800">
+    <!--日志级别以及优先级排序: ALL < TRACE < DEBUG < INFO < WARN < ERROR < FATAL < OFF -->
+
+    <!--变量配置-->
+    <Properties>
+        <!--应用名称-->
+        <property name="APP_NAME">railway-12306-transfer</property>
+        <!--日志存放路径-->
+        <property name="LOG_PATH">./logs/${APP_NAME}</property>
+        <!--日志备份路径-->
+        <property name="LOG_BACKUP_PATH">${LOG_PATH}/backup</property>
+        <!--日志输出格式-控制台-->
+        <property name="PATTERN_CONSOLE">%d{yyyy-MM-dd HH:mm:ss.SSS} | %blue{%traceId} | %highlight{%-5p} | %magenta{${sys:PID}} | %yellow{%t} | %cyan{%l} : %msg%n</property>
+        <!--日志输出格式-文件-->
+        <property name="PATTERN_FILE">%d{yyyy-MM-dd HH:mm:ss.SSS} | %traceId | %-5p | ${sys:PID} | %t | %l : %msg%n</property>
+    </Properties>
+
+    <!--定义日志输出目的地，内容和格式等-->
+    <Appenders>
+        <!--控制台-->
+        <Console name="Console" target="SYSTEM_OUT">
+            <!--输出日志的格式:
+                1.不设置默认为: %m%n
+                2.disableAnsi="false" noConsoleNoAnsi="false" 配置开启支持%highlight彩色日志
+            -->
+            <PatternLayout pattern="${PATTERN_CONSOLE}" disableAnsi="false" noConsoleNoAnsi="false"/>
+            <!--只输出level及其以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+        </Console>
+
+        <!--可归档文件
+            1. fileName: 日志存储路径
+            2. filePattern: 历史日志封存路径。其中%d{yyyy-MM-dd}表示了日志的时间单位是天,log4j2自动识别zip等后缀，表示历史日志需要压缩
+        -->
+        <RollingFile name="RollingFile" fileName="${LOG_PATH}/${APP_NAME}.log" filePattern="${LOG_BACKUP_PATH}/$${date:yyyy-MM}/${APP_NAME}-%d{yyyy-MM-dd}_%i.log.zip">
+            <!--输出日志的格式, 不设置默认为:%m%n-->
+            <PatternLayout pattern="${PATTERN_FILE}"/>
+            <!--只输出level及以上级别的信息（onMatch），其他的直接拒绝（onMismatch）-->
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!--归档设置-->
+            <Policies>
+                <!--按时间间隔归档:
+                    1. interval=时间间隔, 单位由filePattern的%d日期格式指定, 此处配置代表每一天归档一次
+                    2. modulate="true" 是否对interval取模，决定了下一次触发的时间点
+                -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+                <!-- 按照日志文件的大小: size表示当前日志文件的最大size，支持单位：KB/MB/GB-->
+                <SizeBasedTriggeringPolicy size="50MB"/>
+            </Policies>
+            <!-- 历史日志配置: 该属性如不设置，则默认为最多同一文件夹下7个文件开始覆盖-->
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!--错误信息单独归档-->
+        <RollingFile name="RollingFileError" fileName="${LOG_PATH}/${APP_NAME}-error.log" filePattern="${LOG_BACKUP_PATH}/$${date:yyyy-MM}/${APP_NAME}-error-%d{yyyy-MM-dd}_%i.log.zip">
+            <PatternLayout pattern="${PATTERN_FILE}"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="50MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+
+
+    <!--Loggers配置-->
+    <Loggers>
+
+        <!--
+        注意点:
+        1. logger节点用来单独指定日志的形式，比如要为指定包下的class指定不同的日志级别等:
+           (1). name: 用来指定该logger所适用的类或者类所在的包全路径,继承自Root节点.
+           (2). AppenderRef：关联的Appender, 只有定义了logger并引入的appender，appender才会生效
+           (3). additivity: logEvent的传递性。true LogEvent处理后传递给父Logger打印。false LogEvent处理后不再向上传递给父Logger(解决日志重复输出问题)
+           (4). logger配置的level必须高于或等于Appenders中ThresholdFilter配置的过滤level, 否则会造成信息丢失
+        2. root配置日志的根节点
+        -->
+
+        <!-- 同步日志配置-->
+        <logger name="com.sky.hello.mapper" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+            <AppenderRef ref="RollingFileError"/>
+        </logger>
+
+        <root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="RollingFile"/>
+            <AppenderRef ref="RollingFileError"/>
+        </root>
+
+    </Loggers>
+
+</Configuration>
