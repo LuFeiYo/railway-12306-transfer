@@ -12,5 +12,5 @@ import java.util.List;
  */
 public interface TransferService {
 
-    List<TicketExcelData> listTicketResult(String fromStation, String toStation, List<String> transferStationList, LocalDate departureDate);
+    List<TicketExcelData> listTicketResult(String fromStation, String toStation, Boolean customTransferStationFlag, List<String> transferStationList, LocalDate departureDate);
 }

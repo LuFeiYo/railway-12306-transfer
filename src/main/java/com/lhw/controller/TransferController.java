@@ -39,10 +39,11 @@ public class TransferController {
     @GetMapping("/downloadTicketExcel")
     public void downloadTicketExcel(@RequestParam("fromStation") @ApiParam("出发地") String fromStation,
                                     @RequestParam("toStation") @ApiParam("到达地") String toStation,
-                                    @RequestParam("transferStationList") @ApiParam("中转地列表") List<String> transferStationList,
+                                    @RequestParam("customTransferStationFlag") @ApiParam("是否自定义中转站") Boolean customTransferStationFlag,
+                                    @RequestParam(value = "transferStationList", required = false) @ApiParam("中转地列表") List<String> transferStationList,
                                     @RequestParam("departureDate") @ApiParam("出发日期") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate departureDate,
                                     HttpServletResponse response) throws IOException {
-        List<TicketExcelData> ticketExcelDataList = transferService.listTicketResult(fromStation, toStation, transferStationList, departureDate);
+        List<TicketExcelData> ticketExcelDataList = transferService.listTicketResult(fromStation, toStation, customTransferStationFlag, transferStationList, departureDate);
         // 这里注意 有同学反应使用swagger 会导致各种问题，请直接用浏览器或者用postman
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");

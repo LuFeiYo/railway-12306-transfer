@@ -2,6 +2,7 @@ package com.lhw.service.impl;
 
 import cn.hutool.core.date.BetweenFormatter;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.http.HttpUtil;
 import com.lhw.enums.OperationSystemEnum;
 import com.lhw.pojo.TicketDTO;
 import com.lhw.pojo.TicketExcelData;
@@ -35,7 +36,7 @@ import java.util.stream.Collectors;
 public class TransferServiceImpl implements TransferService {
 
     @Override
-    public List<TicketExcelData> listTicketResult(String fromStation, String toStation, List<String> transferStationList, LocalDate departureDate) {
+    public List<TicketExcelData> listTicketResult(String fromStation, String toStation, Boolean customTransferStationFlag, List<String> transferStationList, LocalDate departureDate) {
         List<TicketExcelData> ticketExcelDataList = new ArrayList<>();
         ChromeOptions option = new ChromeOptions();
         String osName = System.getProperty("os.name");
@@ -47,6 +48,22 @@ public class TransferServiceImpl implements TransferService {
         }
         WebDriver driver = new ChromeDriver(option);
         driver.manage().window().maximize();
+        if (!customTransferStationFlag) {
+            transferStationList = new ArrayList<>();
+            // 获取所有的火车站信息
+            driver.get("https://www.12306.cn/index/");
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(60L));
+            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("search_one")));
+            String attribute = driver.findElements(By.tagName("script")).stream().filter(e -> e.getAttribute("src").contains("station_name_")).collect(Collectors.toList()).get(0).getAttribute("src");
+            String result = HttpUtil.get(attribute);
+            result = result.substring(result.indexOf("'") + 1, result.lastIndexOf("'"));
+            for (String allInfo : result.split("@")) {
+                if (StringUtils.isNotEmpty(allInfo)) {
+                    String train = allInfo.split("\\|")[1];
+                    transferStationList.add(train);
+                }
+            }
+        }
         // 从出发地到中转地
         Map<String, List<TicketDTO>> toTransferStationMap = new HashMap<>();
         // 从中转地到到达地
