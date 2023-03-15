@@ -18,6 +18,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -36,6 +37,12 @@ import java.util.stream.Collectors;
 @Log4j2
 @Service
 public class TransferServiceImpl implements TransferService {
+
+    @Value("${thread.sleep.wait:3000}")
+    private Integer waitTime;
+
+    @Value("${thread.sleep.click:500}")
+    private Integer clickTime;
 
     @Override
     public List<TicketExcelData> listTicketResult(String fromStation, String toStation, Boolean customTransferStationFlag, List<String> transferStationList, LocalDate departureDate) {
@@ -145,15 +152,16 @@ public class TransferServiceImpl implements TransferService {
             wait.until(ExpectedConditions.presenceOfElementLocated(By.id("search_one")));
             // 加载完成，开始输入参数
             clearAndSendKey(driver.findElement(By.id("fromStationText")), fromStation);
-            Thread.sleep(500);
+            Thread.sleep(clickTime);
             driver.findElement(By.id("citem_0")).click();
             clearAndSendKey(driver.findElement(By.id("toStationText")), toStation);
-            Thread.sleep(500);
+            Thread.sleep(clickTime);
             driver.findElement(By.id("citem_0")).click();
             driver.findElement(By.id("train_date")).clear();
             driver.findElement(By.id("train_date")).sendKeys(departureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             driver.findElement(By.id("search_one")).click();
-            Thread.sleep(1500);
+            // 等待，防止封IP
+            Thread.sleep(waitTime);
             // 切换到新标签页
             driver.close();
             Set<String> windowHandleSet = driver.getWindowHandles();
@@ -190,7 +198,7 @@ public class TransferServiceImpl implements TransferService {
                         List<WebElement> tdList = webElement.findElements(By.tagName("td"));
                         tdList.get(tdList.size() - 2).click();
                         // 这个时间不可修改
-                        Thread.sleep(3500);
+                        Thread.sleep(waitTime);
                         WebElement priceWebElement = webElementList.get(i + 1);
                         List<WebElement> priceTdElementList = priceWebElement.findElements(By.tagName("td"));
                         log.info(String.format("正在收集从【%s】到【%s】的于【%s】发车的【%s】次列车", fromStation, toStation, departureTime, train));
