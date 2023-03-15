@@ -41,6 +41,7 @@ public class TransferServiceImpl implements TransferService {
     public List<TicketExcelData> listTicketResult(String fromStation, String toStation, Boolean customTransferStationFlag, List<String> transferStationList, LocalDate departureDate) {
         List<TicketExcelData> ticketExcelDataList = new ArrayList<>();
         ChromeOptions option = new ChromeOptions();
+        option.addArguments("--remote-allow-origins=*");
         String osName = System.getProperty("os.name");
         if (osName.equals(OperationSystemEnum.LINUX.getSystemName())) {
             // 没有窗口的模式
@@ -152,6 +153,7 @@ public class TransferServiceImpl implements TransferService {
             driver.findElement(By.id("train_date")).clear();
             driver.findElement(By.id("train_date")).sendKeys(departureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             driver.findElement(By.id("search_one")).click();
+            Thread.sleep(1500);
             // 切换到新标签页
             driver.close();
             Set<String> windowHandleSet = driver.getWindowHandles();
