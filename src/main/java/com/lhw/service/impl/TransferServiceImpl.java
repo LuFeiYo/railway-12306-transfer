@@ -168,60 +168,64 @@ public class TransferServiceImpl implements TransferService {
             driver.close();
             Set<String> windowHandleSet = driver.getWindowHandles();
             driver.switchTo().window(String.valueOf(windowHandleSet.toArray()[0]));
-            WebDriverWait ticketTableWait = new WebDriverWait(driver, Duration.ofMillis(60L));
-            ticketTableWait.until(ExpectedConditions.presenceOfElementLocated(By.id("queryLeftTable")));
-            WebElement queryLeftTable = driver.findElement(By.id("queryLeftTable"));
-            List<WebElement> webElementList = queryLeftTable.findElements(By.tagName("tr"));
-            for (int i = 0; i < webElementList.size(); i++) {
-                WebElement webElement = webElementList.get(i);
-                if (StringUtils.isEmpty(webElement.getAttribute("datatran")) && !webElement.getAttribute("id").equals("lcdata")) {
-                    TicketDTO ticketDTO = new TicketDTO();
-                    // 出发站
-                    String fromStationTemp = webElement.findElements(By.tagName("strong")).get(0).getText();
-                    ticketDTO.setFromStation(fromStationTemp);
-                    // 出发日期
-                    ticketDTO.setDepartureDate(departureDate);
-                    // 出发时间
-                    String departureTime = webElement.findElements(By.tagName("strong")).get(2).getText();
-                    ticketDTO.setDepartureTime(departureTime);
-                    // 车次
-                    String train = webElement.findElement(By.tagName("a")).getText();
-                    ticketDTO.setTrain(train);
-                    // 历时
-                    String duration = webElement.findElements(By.tagName("strong")).get(4).getText();
-                    ticketDTO.setDuration(duration);
-                    // 中转站
-                    String transferStationTemp = webElement.findElements(By.tagName("strong")).get(1).getText();
-                    ticketDTO.setTransferStation(transferStationTemp);
-                    // 到站时间
-                    String arrivalTime = webElement.findElements(By.tagName("strong")).get(3).getText();
-                    ticketDTO.setArrivalTime(arrivalTime);
-                    List<WebElement> tdList = webElement.findElements(By.tagName("td"));
-                    tdList.get(tdList.size() - 2).click();
-                    // 这个时间不可修改
-                    Thread.sleep(waitTime);
-                    WebElement priceWebElement = webElementList.get(i + 1);
-                    List<WebElement> priceTdElementList = priceWebElement.findElements(By.tagName("td"));
-                    log.info(String.format("正在收集从【%s】到【%s】的于【%s】发车的【%s】次列车", fromStation, toStation, departureTime, train));
-                    if (CollectionUtils.isNotEmpty(priceTdElementList)) {
-                        // 出发日期+时间
-                        ticketDTO.setDepartureDateTime(LocalDateTime.parse(departureDate + " " + departureTime + ":00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-                        // 到站日期+时间
-                        LocalDateTime arrivalDateTime = ticketDTO.getDepartureDateTime()
-                                .plusHours(Long.parseLong(ticketDTO.getDuration().split(":")[0]))
-                                .plusMinutes(Long.parseLong(ticketDTO.getDuration().split(":")[1]));
-                        ticketDTO.setArrivalDateTime(arrivalDateTime);
-                        // 到站日期
-                        LocalDate arrivalDate = arrivalDateTime.toLocalDate();
-                        ticketDTO.setArrivalDate(arrivalDate);
-                        // 当日到达文本
-                        String spanText = webElement.findElements(By.tagName("span")).get(2).getText();
-                        ticketDTO.setArrivalTheDayText(spanText);
-                        // 票价
-                        String erDengZuo = priceTdElementList.get(3).getText();
-                        String yingZuo = priceTdElementList.get(9).getText();
-                        ticketDTO.setPrice(StringUtils.isNotEmpty(yingZuo) ? yingZuo : erDengZuo);
-                        ticketDTOList.add(ticketDTO);
+            if (driver.findElement(By.id("err_bot")) != null) {
+                throw new RuntimeException("网络可能存在问题，请您重试一下！");
+            } else {
+                WebDriverWait ticketTableWait = new WebDriverWait(driver, Duration.ofMillis(60L));
+                ticketTableWait.until(ExpectedConditions.presenceOfElementLocated(By.id("queryLeftTable")));
+                WebElement queryLeftTable = driver.findElement(By.id("queryLeftTable"));
+                List<WebElement> webElementList = queryLeftTable.findElements(By.tagName("tr"));
+                for (int i = 0; i < webElementList.size(); i++) {
+                    WebElement webElement = webElementList.get(i);
+                    if (StringUtils.isEmpty(webElement.getAttribute("datatran")) && !webElement.getAttribute("id").equals("lcdata")) {
+                        TicketDTO ticketDTO = new TicketDTO();
+                        // 出发站
+                        String fromStationTemp = webElement.findElements(By.tagName("strong")).get(0).getText();
+                        ticketDTO.setFromStation(fromStationTemp);
+                        // 出发日期
+                        ticketDTO.setDepartureDate(departureDate);
+                        // 出发时间
+                        String departureTime = webElement.findElements(By.tagName("strong")).get(2).getText();
+                        ticketDTO.setDepartureTime(departureTime);
+                        // 车次
+                        String train = webElement.findElement(By.tagName("a")).getText();
+                        ticketDTO.setTrain(train);
+                        // 历时
+                        String duration = webElement.findElements(By.tagName("strong")).get(4).getText();
+                        ticketDTO.setDuration(duration);
+                        // 中转站
+                        String transferStationTemp = webElement.findElements(By.tagName("strong")).get(1).getText();
+                        ticketDTO.setTransferStation(transferStationTemp);
+                        // 到站时间
+                        String arrivalTime = webElement.findElements(By.tagName("strong")).get(3).getText();
+                        ticketDTO.setArrivalTime(arrivalTime);
+                        List<WebElement> tdList = webElement.findElements(By.tagName("td"));
+                        tdList.get(tdList.size() - 2).click();
+                        // 这个时间不可修改
+                        Thread.sleep(waitTime);
+                        WebElement priceWebElement = webElementList.get(i + 1);
+                        List<WebElement> priceTdElementList = priceWebElement.findElements(By.tagName("td"));
+                        log.info(String.format("正在收集从【%s】到【%s】的于【%s】发车的【%s】次列车", fromStation, toStation, departureTime, train));
+                        if (CollectionUtils.isNotEmpty(priceTdElementList)) {
+                            // 出发日期+时间
+                            ticketDTO.setDepartureDateTime(LocalDateTime.parse(departureDate + " " + departureTime + ":00", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+                            // 到站日期+时间
+                            LocalDateTime arrivalDateTime = ticketDTO.getDepartureDateTime()
+                                    .plusHours(Long.parseLong(ticketDTO.getDuration().split(":")[0]))
+                                    .plusMinutes(Long.parseLong(ticketDTO.getDuration().split(":")[1]));
+                            ticketDTO.setArrivalDateTime(arrivalDateTime);
+                            // 到站日期
+                            LocalDate arrivalDate = arrivalDateTime.toLocalDate();
+                            ticketDTO.setArrivalDate(arrivalDate);
+                            // 当日到达文本
+                            String spanText = webElement.findElements(By.tagName("span")).get(2).getText();
+                            ticketDTO.setArrivalTheDayText(spanText);
+                            // 票价
+                            String erDengZuo = priceTdElementList.get(3).getText();
+                            String yingZuo = priceTdElementList.get(9).getText();
+                            ticketDTO.setPrice(StringUtils.isNotEmpty(yingZuo) ? yingZuo : erDengZuo);
+                            ticketDTOList.add(ticketDTO);
+                        }
                     }
                 }
             }
