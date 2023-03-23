@@ -6,8 +6,11 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+  redis:
+    host: localhost
+    password:
 
 thread:
   sleep:
-    wait: 3000
+    wait: 3500
     click: 500

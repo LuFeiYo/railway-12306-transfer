@@ -2,6 +2,7 @@ package com.lhw.pojo;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -11,7 +12,9 @@ import java.time.LocalDateTime;
  * @description 车票信息
  */
 @Data
-public class TicketDTO {
+public class TicketDTO implements Serializable {
+
+    private static final long serialVersionUID = -5428110125019472588L;
 
     /**
      * 出发站

@@ -3,6 +3,7 @@ package com.lhw.service.impl;
 import cn.hutool.core.date.BetweenFormatter;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONUtil;
 import com.lhw.enums.OperationSystemEnum;
 import com.lhw.pojo.TicketDTO;
 import com.lhw.pojo.TicketExcelData;
@@ -19,8 +20,10 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -43,6 +46,9 @@ public class TransferServiceImpl implements TransferService {
 
     @Value("${thread.sleep.click:500}")
     private Integer clickTime;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
     @Override
     public List<TicketExcelData> listTicketResult(String fromStation, String toStation, Boolean customTransferStationFlag, List<String> transferStationList, LocalDate departureDate) {
@@ -148,29 +154,35 @@ public class TransferServiceImpl implements TransferService {
      */
     private List<TicketDTO> generateTicketDTOList(WebDriver driver, String fromStation, String toStation, LocalDate departureDate) {
         List<TicketDTO> ticketDTOList = new ArrayList<>();
-        try {
-            driver.get("https://www.12306.cn/index/");
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(60L));
-            wait.until(ExpectedConditions.presenceOfElementLocated(By.id("search_one")));
-            // 加载完成，开始输入参数
-            clearAndSendKey(driver.findElement(By.id("fromStationText")), fromStation);
-            Thread.sleep(clickTime);
-            driver.findElement(By.id("citem_0")).click();
-            clearAndSendKey(driver.findElement(By.id("toStationText")), toStation);
-            Thread.sleep(clickTime);
-            driver.findElement(By.id("citem_0")).click();
-            driver.findElement(By.id("train_date")).clear();
-            driver.findElement(By.id("train_date")).sendKeys(departureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-            // 等待，防止封IP
-            Thread.sleep(waitTime);
-            driver.findElement(By.id("search_one")).click();
-            // 切换到新标签页
-            driver.close();
-            Set<String> windowHandleSet = driver.getWindowHandles();
-            driver.switchTo().window(String.valueOf(windowHandleSet.toArray()[0]));
-            if (driver.findElement(By.id("err_bot")) != null) {
-                throw new RuntimeException("网络可能存在问题，请您重试一下！");
-            } else {
+        String key = "train";
+        String hashKey = departureDate + ":" + fromStation + ":" + toStation;
+        Object trainHash = redisTemplate.opsForHash().get(key, hashKey);
+        if (trainHash == null) {
+            try {
+                driver.get("https://www.12306.cn/index/");
+                WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(60L));
+                wait.until(ExpectedConditions.presenceOfElementLocated(By.id("search_one")));
+                // 加载完成，开始输入参数
+                clearAndSendKey(driver.findElement(By.id("fromStationText")), fromStation);
+                Thread.sleep(clickTime);
+                driver.findElement(By.id("citem_0")).click();
+                clearAndSendKey(driver.findElement(By.id("toStationText")), toStation);
+                Thread.sleep(clickTime);
+                driver.findElement(By.id("citem_0")).click();
+                driver.findElement(By.id("train_date")).clear();
+                driver.findElement(By.id("train_date")).sendKeys(departureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+                // 等待，防止封IP
+                Thread.sleep(waitTime);
+                driver.findElement(By.id("search_one")).click();
+                // 切换到新标签页
+                driver.close();
+                Set<String> windowHandleSet = driver.getWindowHandles();
+                driver.switchTo().window(String.valueOf(windowHandleSet.toArray()[0]));
+                try {
+                    if (driver.findElement(By.id("err_bot")) != null) {
+                        throw new RuntimeException("网络可能存在问题，请您重试一下！");
+                    }
+                } catch (org.openqa.selenium.NoSuchElementException noSuchElementException) {}
                 WebDriverWait ticketTableWait = new WebDriverWait(driver, Duration.ofMillis(60L));
                 ticketTableWait.until(ExpectedConditions.presenceOfElementLocated(By.id("queryLeftTable")));
                 WebElement queryLeftTable = driver.findElement(By.id("queryLeftTable"));
@@ -228,9 +240,14 @@ public class TransferServiceImpl implements TransferService {
                         }
                     }
                 }
+                redisTemplate.opsForHash().put(key, hashKey, JSONUtil.toJsonStr(ticketDTOList));
+            } catch (InterruptedException e) {
+                redisTemplate.opsForHash().delete(key, hashKey);
+                e.printStackTrace();
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } else {
+            ticketDTOList = JSONUtil.toList(JSONUtil.parseArray(trainHash), TicketDTO.class);
+            log.info(String.format("正在从redis中收集于【%s】从【%s】到【%s】的列车", departureDate, fromStation, toStation));
         }
         return ticketDTOList;
     }
