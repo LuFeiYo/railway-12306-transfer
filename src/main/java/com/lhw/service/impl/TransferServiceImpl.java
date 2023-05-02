@@ -4,6 +4,7 @@ import cn.hutool.core.date.BetweenFormatter;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
+import com.lhw.config.common.Constant;
 import com.lhw.enums.OperationSystemEnum;
 import com.lhw.pojo.TicketDTO;
 import com.lhw.pojo.TicketExcelData;
@@ -72,12 +73,18 @@ public class TransferServiceImpl implements TransferService {
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofMillis(60L));
             wait.until(ExpectedConditions.presenceOfElementLocated(By.id("search_one")));
             String attribute = driver.findElements(By.tagName("script")).stream().filter(e -> e.getAttribute("src").contains("station_name_")).collect(Collectors.toList()).get(0).getAttribute("src");
-            String result = HttpUtil.get(attribute);
-            result = result.substring(result.indexOf("'") + 1, result.lastIndexOf("'"));
-            for (String allInfo : result.split("@")) {
-                if (StringUtils.isNotEmpty(allInfo)) {
-                    String train = allInfo.split("\\|")[1];
-                    transferStationList.add(train);
+            String key = Constant.REDIS_PREFIX + attribute.substring(attribute.lastIndexOf("/") + 1);
+            if (redisTemplate.opsForSet().size(key) != 0) {
+                transferStationList = new ArrayList<>(redisTemplate.opsForSet().members(key));
+            } else {
+                String result = HttpUtil.get(attribute);
+                result = result.substring(result.indexOf("'") + 1, result.lastIndexOf("'"));
+                for (String allInfo : result.split("@")) {
+                    if (StringUtils.isNotEmpty(allInfo)) {
+                        String transferStation = allInfo.split("\\|")[1];
+                        transferStationList.add(transferStation);
+                        redisTemplate.opsForSet().add(key, transferStation);
+                    }
                 }
             }
             log.info(String.format("已完成所有车站的获取，共获取到%s个车站", transferStationList.size()));
