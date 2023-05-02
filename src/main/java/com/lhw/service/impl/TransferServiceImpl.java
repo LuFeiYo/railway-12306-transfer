@@ -5,7 +5,6 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
 import com.lhw.config.common.Constant;
-import com.lhw.enums.OperationSystemEnum;
 import com.lhw.pojo.TicketDTO;
 import com.lhw.pojo.TicketExcelData;
 import com.lhw.service.TransferService;
@@ -41,9 +40,6 @@ import java.util.stream.Collectors;
 @Log4j2
 @Service
 public class TransferServiceImpl implements TransferService {
-
-    @Value("${thread.sleep.wait:3000}")
-    private Integer waitTime;
 
     @Value("${thread.sleep.click:500}")
     private Integer clickTime;
@@ -161,7 +157,7 @@ public class TransferServiceImpl implements TransferService {
      */
     private List<TicketDTO> generateTicketDTOList(WebDriver driver, String fromStation, String toStation, LocalDate departureDate) {
         List<TicketDTO> ticketDTOList = new ArrayList<>();
-        String key = "train";
+        String key = Constant.REDIS_PREFIX + "train";
         String hashKey = departureDate + ":" + fromStation + ":" + toStation;
         Object trainHash = redisTemplate.opsForHash().get(key, hashKey);
         if (trainHash == null) {
@@ -179,7 +175,7 @@ public class TransferServiceImpl implements TransferService {
                 driver.findElement(By.id("train_date")).clear();
                 driver.findElement(By.id("train_date")).sendKeys(departureDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
                 // 等待，防止封IP
-                Thread.sleep(waitTime);
+                Thread.sleep(getRandom());
                 driver.findElement(By.id("search_one")).click();
                 // 切换到新标签页
                 driver.close();
@@ -221,7 +217,7 @@ public class TransferServiceImpl implements TransferService {
                         List<WebElement> tdList = webElement.findElements(By.tagName("td"));
                         tdList.get(tdList.size() - 2).click();
                         // 这个时间不可修改
-                        Thread.sleep(waitTime);
+                        Thread.sleep(getRandom());
                         WebElement priceWebElement = webElementList.get(i + 1);
                         List<WebElement> priceTdElementList = priceWebElement.findElements(By.tagName("td"));
                         log.info(String.format("正在收集从【%s】到【%s】的于【%s】发车的【%s】次列车", fromStation, toStation, departureTime, train));
@@ -257,6 +253,15 @@ public class TransferServiceImpl implements TransferService {
             log.info(String.format("正在从redis中收集于【%s】从【%s】到【%s】的列车", departureDate, fromStation, toStation));
         }
         return ticketDTOList;
+    }
+
+    /**
+     * 获取一个随机数
+     * @return
+     */
+    private Integer getRandom() {
+        Random random = new Random();
+        return random.nextInt(1001) + 3000;
     }
 
     /**
