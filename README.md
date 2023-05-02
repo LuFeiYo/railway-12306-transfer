@@ -10,15 +10,16 @@
 3. Mac OS安装方式：
    1. 下载并解压，将解压出来的chromedriver存放到 /usr/local/bin 这个目录下；
    2. 执行如下命令
-		1. 删除chromedriver的隔离性
+        1. 删除chromedriver的隔离性
 `xattr -d com.apple.quarantine chromedriver`
-		2. 对chromedriver添加许可
+        2. 对chromedriver添加许可
 `spctl --add --label 'Approved' chromedriver`
-	3. 打开终端，输入chromedriver并回车，可成功启动一个浏览器窗口即为驱动安装成功。
+    3. 打开终端，输入chromedriver并回车，可成功启动一个浏览器窗口即为驱动安装成功。
 4. Windows安装方式：
-	1. 下载并解压，将解压出来的chromedriver.exe存放到谷歌浏览器安装目录下，比如：C:\Program Files (x86)\Google\Chrome\Application；
-	2. 配置环境变量:此电脑→右击属性→高级系统设置→环境变量→用户变量→Path→编辑→新建，也就是刚刚放chromedriver.exe的路径，比如：C\:\Program Files (x86)\Google\Chrome\Application；
-	3. 打开cmd，输入chromedriver并回车，可成功启动一个浏览器窗口即为驱动安装成功。
+    1. 下载并解压，将解压出来的chromedriver.exe存放到谷歌浏览器安装目录下，比如：C:\Program Files (x86)\Google\Chrome\Application；
+    2. 配置环境变量:此电脑→右击属性→高级系统设置→环境变量→用户变量→Path→编辑→新建，也就是刚刚放chromedriver.exe的路径，比如：C\:\Program Files (x86)\Google\Chrome\Application；
+    3. 打开cmd，输入chromedriver并回车，可成功启动一个浏览器窗口即为驱动安装成功。
+5. 重启idea。
 ## 开发日志
 1. 项目创建（2023-02-08）；
 2. 运行起来项目（2023-02-10）；
@@ -28,11 +29,15 @@
 6. 最终中转方案生成（2023-02-27）；
 7. 安装使用文档补充（2023-03-02）；
 8. 引入日志（2023-03-13）;
-9. 等被封IP的时候获取到元素，通过接口报错的形式告知，而不是继续执行（2023-03-16）。
+9. 等被封IP的时候获取到元素，通过接口报错的形式告知，而不是继续执行（2023-03-16）；
+10. 缓存全国车站信息（2023-05-02）。
 ## 待办列表
 1. 能够选择车站；
-2. 分包；
-3. 将能缓存的东西缓存起来，减少爬取数据的步骤；
-4. 能够将已查询过的数据放到redis中；
-5. 添加接口响应的统一处理；
-6. 能够通过算法实现只查询两点之间的车站，而不是全国的车站。
+2. 爬取的间隔时间随机；
+3. 能够获取到是否有票；
+4. 支持座位类型的选择；
+5. 分包；
+6. 将能缓存的东西缓存起来，减少爬取数据的步骤；
+7. 能够将已查询过的数据放到redis中；
+8. 添加接口响应的统一处理；
+9. 能够通过算法实现只查询两点之间的车站，而不是全国的车站。
