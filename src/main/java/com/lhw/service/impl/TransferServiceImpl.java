@@ -53,6 +53,7 @@ public class TransferServiceImpl implements TransferService {
         List<TicketExcelData> ticketExcelDataList = new ArrayList<>();
         ChromeOptions option = new ChromeOptions();
         option.addArguments("--remote-allow-origins=*");
+        option.setExperimentalOption("excludeSwitches", new String[]{"enable-automation"});
         String osName = System.getProperty("os.name");
         if (osName.equals(OperationSystemEnum.LINUX.getSystemName())) {
             // 没有窗口的模式
